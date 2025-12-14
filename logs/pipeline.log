@@ -4,3 +4,9 @@
 2025-12-14 20:28:43,513 - ymda.data.repository - INFO - 仓储实例初始化成功（单例）
 2025-12-14 20:28:57,113 - ymda.data.db - INFO - Supabase数据库连接成功（单例）- URL: https://jzbryzxnupypaxommjgh.s... Key类型: service_role，已自动设置 apikey 和 Authorization Bearer headers
 2025-12-14 20:28:57,114 - ymda.data.repository - INFO - 仓储实例初始化成功（单例）
+2025-12-14 21:35:12,342 - ymda.services.embedding_service - WARNING - OPENAI_API_KEY 未设置，embedding 功能将不可用
+2025-12-14 21:35:12,344 - ymda.services.query_understanding - WARNING - OPENAI_API_KEY 未设置，Query Understanding 功能将不可用
+2025-12-14 21:35:12,344 - ymda.data.db - WARNING - 数据库配置不完整，无法初始化连接。缺失配置: SUPABASE_URL, SUPABASE_KEY 或 SUPABASE_SERVICE_ROLE_KEY。请确保 .env 文件存在且包含必要的配置项。
+2025-12-14 21:35:12,344 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
+2025-12-14 21:35:12,344 - ymda.data.db - WARNING - 数据库配置不完整，无法初始化连接。缺失配置: SUPABASE_URL, SUPABASE_KEY 或 SUPABASE_SERVICE_ROLE_KEY。请确保 .env 文件存在且包含必要的配置项。
+2025-12-14 21:35:12,344 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
