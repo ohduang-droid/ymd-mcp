@@ -1,0 +1,240 @@
+"""Perplexity Deep Research 客户端实现"""
+
+import json
+import os
+from typing import Any, Dict, List, Optional
+from perplexity import Perplexity
+from ymda.llm.base import BaseLLMClient
+from ymda.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+class DeepResearchClient(BaseLLMClient):
+    """Deep Research 客户端 - 使用 Perplexity SDK (Sonar Deep Research)"""
+    
+    def __init__(self, api_key: Optional[str] = None, model: str = "sonar", base_url: str = "https://api.perplexity.ai"):
+        """初始化 Deep Research 客户端
+        
+        Args:
+            api_key: Perplexity API密钥
+            model: 模型名称，默认 'sonar-reasoning'
+            base_url: API 基础 URL (SDK通常不需要，但保留参数兼容)
+        """
+        super().__init__(api_key)
+        self.api_key = api_key
+        self.model = model
+        
+        # Perplexity SDK usually reads from env, or we can instantiate it.
+        # Ensure env var is set if api_key is provided explicitly
+        if api_key:
+            os.environ["PERPLEXITY_API_KEY"] = api_key
+            
+        try:
+            # Initialize Perplexity client
+            self.client = Perplexity() if api_key else None
+        except Exception as e:
+            logger.error(f"Initialization failed: {e}")
+            self.client = None
+    
+    def research(self, query: str, json_schema: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+        """执行深度研究
+        
+        Args:
+            query: 研究查询文本
+            json_schema: 可选的 JSON Schema 用于结构化输出
+            **kwargs: 其他参数（temperature, max_tokens, etc.）
+        
+        Returns:
+            包含 raw_answer_text, sources 等的字典
+        """
+        if not self.client:
+            raise RuntimeError("Perplexity 客户端未初始化，请提供 API 密钥")
+            
+        messages = [
+            {"role": "user", "content": query}
+        ]
+        
+        # 准备请求参数
+        request_params = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", 0.3), # Slightly higher than 0 for better explanations, unless strict JSON
+        }
+        
+        # 如果提供了 JSON Schema，设置 response_format
+        if json_schema:
+            request_params["response_format"] = {
+                "type": "json_schema",
+                "json_schema": json_schema
+            }
+            # 通常结构化输出时 temperature 设为 0 比较好
+            request_params["temperature"] = 0
+            
+        # 其他可选参数
+        if "max_tokens" in kwargs:
+            request_params["max_tokens"] = kwargs["max_tokens"]
+            # SDK specific checks can go here if needed
+            
+        # Perplexity SDK supports search_domain_filter etc in kwargs? 
+        # OpenAI client put them in extra_body or direct params. 
+        # We assume standard chat completion params for now.
+        if "search_domain_filter" in kwargs:
+             # Warning: 'search_domain_filter' might not be directly supported by standard chat.completions.create in SDK unless it wraps it.
+             # We pass it just in case or put it in extra_body if SDK supports it.
+             # For now, let's keep it in request_params if it was working via kwargs unpacking.
+             request_params["search_domain_filter"] = kwargs["search_domain_filter"]
+
+        try:
+            logger.info(f"开始 Perplexity 研究: Model={self.model}")
+            
+            # 同步调用
+            # Timeout logic handles outside if SDK doesn't support it directly in create(), 
+            # but usually OpenAI-compatible SDKs do.
+            timeout = kwargs.get("timeout", 120)
+            
+            response = self.client.chat.completions.create(
+                **request_params,
+                # timeout=timeout # SDK might not support timeout arg in create() same way, checking docs implies it's standard.
+            )
+            
+            # SDK response attributes
+            message = response.choices[0].message
+            content = message.content
+            
+            # 解析 Citations (Perplexity SDK returns 'citations' attribute on response object usually)
+            citations = getattr(response, "citations", [])
+            
+
+
+            # 解析 Usage
+            usage_data = None
+            if hasattr(response, "usage") and response.usage:
+                # Try model_dump first (pydantic v2), then dict (v1), then attributes
+                if hasattr(response.usage, "model_dump"):
+                    usage_data = response.usage.model_dump()
+                elif hasattr(response.usage, "dict"):
+                    usage_data = response.usage.dict()
+                else:
+                    usage_data = {
+                        "prompt_tokens": getattr(response.usage, "prompt_tokens", 0),
+                        "completion_tokens": getattr(response.usage, "completion_tokens", 0),
+                        "total_tokens": getattr(response.usage, "total_tokens", 0)
+                    }
+
+            # 如果是结构化输出，尝试解析 JSON
+            structured_data = None
+            if json_schema:
+                structured_data = self._extract_json_from_text(content)
+                if not structured_data:
+                    logger.warning("无法解析 JSON 响应")
+            
+            
+            result = {
+                "raw_answer_text": content,
+                "sources": citations,
+                "status": "completed",
+                "structured_answer": structured_data,
+                "usage": usage_data
+            }
+            
+            logger.info("Perplexity 研究完成")
+            return result
+
+        except Exception as e:
+            logger.error(f"Perplexity 研究失败: {e}")
+            raise
+
+    def _extract_json_from_text(self, text: str) -> Optional[Dict[str, Any]]:
+        """从文本中提取最佳匹配的 JSON"""
+        # 1. 尝试直接解析
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # 2. 提取所有 ```json ... ``` 块
+        import re
+        matches = re.findall(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+        
+        candidates = []
+        for json_str in matches:
+            try:
+                candidates.append(json.loads(json_str))
+            except:
+                continue
+        
+        if not candidates:
+            # 尝试查找可能是 JSON 的片段 (例如以 { 开头 } 结尾)
+            # 针对嵌套 JSON 的情况，需要从所有可能的 '{' 位置开始尝试
+            try:
+                last_brace_end = text.rfind('}')
+                if last_brace_end != -1:
+                    # 找到所有 '{' 的位置
+                    start_indices = [m.start() for m in re.finditer(r'\{', text[:last_brace_end+1])]
+                    
+                    # 从第一个 '{' 开始尝试解析
+                    for start_index in start_indices:
+                        candidate_str = text[start_index:last_brace_end+1]
+                        try:
+                            parsed = json.loads(candidate_str)
+                            candidates.append(parsed)
+                            # 如果找到包含 'structured' 或 'provenance' 的 JSON，优先使用
+                            if isinstance(parsed, dict) and ('structured' in parsed or 'provenance' in parsed):
+                                break
+                        except:
+                            continue
+            except:
+                pass
+
+        if not candidates:
+            return None
+
+        # 3. 选择最佳候选
+        # 优先选择包含 'provenance' 或 'structured' 的候选 (针对我们的场景)
+        for cand in candidates:
+            if isinstance(cand, dict) and ('provenance' in cand or 'structured' in cand):
+                return cand
+        
+        # 否则返回最后一个成功解析的 JSON
+        return candidates[-1]
+
+    def chat(self, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+        """发送聊天请求 (兼容 BaseLLMClient)"""
+        if not self.client:
+            raise RuntimeError("Client not initialized")
+            
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                **kwargs
+            )
+            
+            content = response.choices[0].message.content
+            usage_data = None
+            if hasattr(response, "usage") and response.usage:
+                 if hasattr(response.usage, "model_dump"):
+                    usage_data = response.usage.model_dump()
+                 elif hasattr(response.usage, "dict"):
+                    usage_data = response.usage.dict()
+            
+            return {
+                "content": content,
+                "sources": getattr(response, "citations", []),
+                "usage": usage_data
+            }
+        except Exception as e:
+            logger.error(f"Chat request failed: {e}")
+            raise
+
+    def complete(self, prompt: str, **kwargs) -> str:
+        """完成文本生成"""
+        messages = [{"role": "user", "content": prompt}]
+        response = self.chat(messages, **kwargs)
+        return response["content"]
+            
+    def embed(self, text: str) -> List[float]:
+        """Perplexity 不直接支持 embed，这里留空或抛错"""
+        return []
+

@@ -1,0 +1,6 @@
+2025-12-14 20:28:34,617 - ymda.data.db - INFO - Supabase数据库连接成功（单例）- URL: https://jzbryzxnupypaxommjgh.s... Key类型: service_role，已自动设置 apikey 和 Authorization Bearer headers
+2025-12-14 20:28:34,619 - ymda.data.repository - INFO - 仓储实例初始化成功（单例）
+2025-12-14 20:28:43,512 - ymda.data.db - INFO - Supabase数据库连接成功（单例）- URL: https://jzbryzxnupypaxommjgh.s... Key类型: service_role，已自动设置 apikey 和 Authorization Bearer headers
+2025-12-14 20:28:43,513 - ymda.data.repository - INFO - 仓储实例初始化成功（单例）
+2025-12-14 20:28:57,113 - ymda.data.db - INFO - Supabase数据库连接成功（单例）- URL: https://jzbryzxnupypaxommjgh.s... Key类型: service_role，已自动设置 apikey 和 Authorization Bearer headers
+2025-12-14 20:28:57,114 - ymda.data.repository - INFO - 仓储实例初始化成功（单例）

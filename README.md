@@ -46,4 +46,3 @@ mcp_service/
 ```
 
 No changes were made to the original MCP implementation; this folder only adds packaging glue.
-# ymd-mcp
