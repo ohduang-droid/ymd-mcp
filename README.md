@@ -14,8 +14,16 @@ python3 -m app.main  # equivalent to python3 start_mcp_server.py
 The helper ensures the local `ymda` package is on `PYTHONPATH`, so imports like
 `from ymda.mcp.server import app` resolve inside this directory alone.
 
-Environment variables (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, ...)
-should be defined exactly as in the main project.
+Environment variables should be defined exactly as in the main project. Use `.env.example` as the
+authoritative list:
+
+```bash
+cp .env.example .env
+# edit .env with real keys before running locally
+```
+
+When deploying to Vercel, copy the same variables into **Project Settings → Environment Variables**
+so the serverless function can reach OpenAI/Supabase/Tavily/Bing at runtime.
 
 ## Deploying on Vercel
 
@@ -25,8 +33,8 @@ should be defined exactly as in the main project.
    cd mcp_service
    vercel deploy --prod
    ```
-3. Vercel reads `vercel.json`, installs `requirements.txt`, and serves the FastAPI app defined in
-   `api/index.py`.
+3. Vercel reads `vercel.json`, installs `requirements.txt`, includes `app/**` and `ymda/**` in the
+   function bundle, and serves the FastAPI app defined in `api/index.py`.
 
 The vendored `ymda` package lives under `mcp_service/ymda`, so deploying just this folder to Vercel
 is sufficient—as long as you provide the required environment variables.

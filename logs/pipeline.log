@@ -10,3 +10,9 @@
 2025-12-14 21:35:12,344 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
 2025-12-14 21:35:12,344 - ymda.data.db - WARNING - 数据库配置不完整，无法初始化连接。缺失配置: SUPABASE_URL, SUPABASE_KEY 或 SUPABASE_SERVICE_ROLE_KEY。请确保 .env 文件存在且包含必要的配置项。
 2025-12-14 21:35:12,344 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
+2025-12-14 22:14:52,797 - ymda.services.embedding_service - WARNING - OPENAI_API_KEY 未设置，embedding 功能将不可用
+2025-12-14 22:14:52,800 - ymda.services.query_understanding - WARNING - OPENAI_API_KEY 未设置，Query Understanding 功能将不可用
+2025-12-14 22:14:52,804 - ymda.data.db - WARNING - 数据库配置不完整，无法初始化连接。缺失配置: SUPABASE_URL, SUPABASE_KEY 或 SUPABASE_SERVICE_ROLE_KEY。请确保 .env 文件存在且包含必要的配置项。
+2025-12-14 22:14:52,807 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
+2025-12-14 22:14:52,889 - ymda.data.db - WARNING - 数据库配置不完整，无法初始化连接。缺失配置: SUPABASE_URL, SUPABASE_KEY 或 SUPABASE_SERVICE_ROLE_KEY。请确保 .env 文件存在且包含必要的配置项。
+2025-12-14 22:14:52,891 - ymda.data.repository - WARNING - 数据库实例为 None，无法创建仓储实例。请检查 Supabase 配置。
